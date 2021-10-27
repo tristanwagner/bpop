@@ -6,6 +6,7 @@ const ctx = canvas.getContext('2d')
 canvas.width = 800
 canvas.height = 500
 
+let gameOver = false
 let score = 0
 let gameFrame = 0
 ctx.font = '60px Georgia'
@@ -32,6 +33,14 @@ canvas.addEventListener('mouseup', function (event) {
   mouse.click = false
 })
 
+const bubblePopSound1 = new Audio('sounds/bubblePopSound1.ogg')
+const bubblePopSound2 = new Audio('sounds/bubblePopSound2.wav')
+
+const background = new Image('images/background.png')
+
+const enemyImage = new Image('images/enemy.png')
+const playerImage = new Image('images/player.png')
+
 class Player {
   constructor() {
     this.x = canvas.width / 2
@@ -40,9 +49,11 @@ class Player {
     this.angle = 0
     this.frameX = 0
     this.frameY = 0
-    this.frame = 0
-    this.spiteWidth = 0
-    this.spiteHeight = 0
+    this.spriteColumns = 4
+    this.spriteRows = 3
+    this.numberOfSprites = this.spriteRows * this.spriteColumns
+    this.spriteWidth = enemyImage.width / this.spriteColumns
+    this.spriteHeight = enemyImage.height / this.spriteRows
     this.velocity = 30
   }
 
@@ -101,15 +112,70 @@ class Bubble {
     ctx.closePath()
   }
 }
+
+class Enemy {
+
+  constructor() {
+    this.x = canvas.width
+    this.y = Math.random() * (canvas.height - 150) + 90
+    this.radius = 50
+    this.speed = Math.random() * 2 + 2
+    this.frameX = 0
+    this.frameY = 0
+    this.spriteColumns = 4
+    this.spriteRows = 3
+    this.numberOfSprites = this.spriteRows * this.spriteColumns
+    this.spriteWidth = enemyImage.width / this.spriteColumns
+    this.spriteHeight = enemyImage.height / this.spriteRows
+    this.distance
+  }
+
+  update() {
+    this.x -= this.speed
+
+    if (this.x < 0 - this.radius * 2) {
+      this.x = canvas.width + 200
+      this.y = Math.random() * (canvas.height - 150) + 90
+      this.speed = Math.random() * 2 + 2
+    }
+
+    // update frame animation every 5 frames
+    if (!(gameFrame % 5)) {
+      this.frameX += 1
+      this.frameY += this.frameX === this.spriteColumns ? 1 : 0
+      this.frameX %= this.spriteColumns
+      this.frameY %= this.spriteRows
+    }
+
+    const dx = this.x - player.x
+    const dy = this.y - player.y
+    this.distance = Math.sqrt(dx * dx + dy * dy)
+  }
+
+  draw() {
+    ctx.fillStyle = 'red'
+    ctx.beginPath()
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.closePath()
+  }
+}
 const player = new Player()
 
 const bubbles = []
 
-const bubblePopSound1 = new Audio('sounds/bubblePopSound1.ogg')
-const bubblePopSound2 = new Audio('sounds/bubblePopSound2.wav')
+const enemies = []
 
 async function make() {
   gameFrame += 1
+
+  console.log(gameFrame)
+  // draw enemy on 250th frame
+  if (gameFrame === 250) {
+
+    console.log(true)
+    enemies.push(new Enemy())
+  }
 
   // draw bubble every 50 frames
   if (!(gameFrame % 50)) {
@@ -121,7 +187,7 @@ async function make() {
 
   ctx.fillText('Score: ' + score, 10, 50)
 
-  for (let i = bubbles.length - 1; i > 0; i--) {
+  for (let i = bubbles.length - 1; i >= 0; i--) {
     const bubble = bubbles[i]
     bubble.update()
     bubble.draw()
@@ -149,8 +215,24 @@ async function make() {
   player.update()
   player.draw()
 
-  // recursive loop
-  requestAnimationFrame(make)
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const enemy = enemies[i]
+    // update and draw enemy
+    enemy.update()
+    enemy.draw()
+
+    if (enemy.distance < enemy.radius + player.radius) {
+      gameOver = true
+    }
+  }
+
+  if (!gameOver) {
+    // recursive loop
+    requestAnimationFrame(make)
+  } else {
+    ctx.fillStyle = 'black'
+    ctx.fillText('You died', 130, 150)
+  }
 }
 
 make()
