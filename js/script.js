@@ -79,6 +79,7 @@ class Bubble {
     this.radius = 50
     this.speed = Math.random() * 5 + 1
     this.distance
+    this.sound = Math.random() <= 0.5
   }
 
   update() {
@@ -100,7 +101,10 @@ const player = new Player()
 
 const bubbles = []
 
-function make() {
+const bubblePopSound1 = new Audio('sounds/bubblePopSound1.ogg')
+const bubblePopSound2 = new Audio('sounds/bubblePopSound2.wav')
+
+async function make() {
   gameFrame += 1
 
   // draw bubble every 50 frames
@@ -123,8 +127,17 @@ function make() {
     }
 
     if (bubble.distance < bubble.radius + player.radius) {
-      bubbles.splice(i, 1)
       score += 1
+      if (bubble.sound) {
+        // TODO:
+        // for now only using 2 because 1
+        // gets bugged when called multiple times
+        // bubblePopSound1.play()
+        bubblePopSound2.play()
+      } else {
+        bubblePopSound2.play()
+      }
+      bubbles.splice(i, 1)
     }
   }
 
