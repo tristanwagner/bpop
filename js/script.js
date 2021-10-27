@@ -12,6 +12,10 @@ ctx.font = '60px Georgia'
 
 let canvasPosition = canvas.getBoundingClientRect()
 
+window.addEventListener('resize', function () {
+  canvasPosition = canvas.getBoundingClientRect()
+})
+
 const mouse = {
   x: canvas.width / 2,
   y: canvas.height / 2,
