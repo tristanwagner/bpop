@@ -9,9 +9,14 @@
   canvas.height = 500
 
   const debug = false
+  let difficulty = 1
   let gameOver = false
   let score = 0
   let gameFrame = 0
+  let level = 1
+  let maxLevel = 3 * difficulty
+  let maxEnemies = 2 * difficulty
+  let levelScore = 8 * difficulty
   ctx.font = '60px Georgia'
 
   let canvasPosition = canvas.getBoundingClientRect()
@@ -58,7 +63,7 @@
     constructor() {
       this.x = canvas.width / 2
       this.y = canvas.height / 2
-      this.radius = 50
+      this.radius = 40
       this.angle = 0
       this.frameX = 0
       this.frameY = 0
@@ -92,6 +97,8 @@
         this.frameX %= this.spriteColumns
         this.frameY %= this.spriteRows
       }
+
+      this.draw()
     }
 
     draw() {
@@ -153,6 +160,8 @@
       this.distance
       this.sound = Math.random() <= 0.5
       this.scale = 4
+      this.popped = false
+      this.toClean = false
     }
 
     update() {
@@ -160,6 +169,22 @@
       const dx = this.x - player.x
       const dy = this.y - player.y
       this.distance = Math.sqrt(dx * dx + dy * dy)
+
+      // update frame animation every 5 frames
+      if (!(gameFrame % 5) && this.popped) {
+        this.frameX += 1
+        this.frameY += this.frameX === this.spriteColumns ? 1 : 0
+
+        if (this.frameX === this.spriteColumns - 1 && this.frameY === this.spriteRows - 1) {
+          this.toClean = true
+        }
+
+        this.frameX %= this.spriteColumns
+        this.frameY %= this.spriteRows
+
+      }
+
+      this.draw()
     }
 
     draw() {
@@ -192,7 +217,7 @@
     constructor() {
       this.x = canvas.width
       this.y = Math.random() * (canvas.height - 150) + 90
-      this.radius = 50
+      this.radius = 40
       this.speed = Math.random() * 2 + 2
       this.frameX = 0
       this.frameY = 0
@@ -225,6 +250,8 @@
       const dx = this.x - player.x
       const dy = this.y - player.y
       this.distance = Math.sqrt(dx * dx + dy * dy)
+
+      this.draw()
     }
 
     draw() {
@@ -258,11 +285,8 @@
   async function make() {
     gameFrame += 1
 
-    console.log(gameFrame)
     // draw enemy on 250th frame
-    if (gameFrame === 250) {
-
-      console.log(true)
+    if (!(gameFrame % 250) && enemies.length < maxEnemies) {
       enemies.push(new Enemy())
     }
 
@@ -274,19 +298,23 @@
     // clear
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    ctx.fillText('Score: ' + score, 10, 50)
 
     for (let i = bubbles.length - 1; i >= 0; i--) {
       const bubble = bubbles[i]
       bubble.update()
-      bubble.draw()
       // clear bubble
-      if (bubble.y < 0 - bubble.radius * 2) {
+      if ((bubble.y < 0 - bubble.radius * 2) || bubble.toClean) {
         bubbles.splice(i, 1)
       }
 
-      if (bubble.distance < bubble.radius + player.radius) {
+      if (bubble.distance < bubble.radius + player.radius && !bubble.popped) {
         score += 1
+
+        if (level !== maxLevel && score >= level * levelScore) {
+          level += 1
+          maxEnemies += maxEnemies
+        }
+
         if (bubble.sound) {
           // TODO:
           // for now only using 2 because 1
@@ -296,32 +324,41 @@
         } else {
           bubblePopSound2.play()
         }
-        bubbles.splice(i, 1)
+        bubble.popped = true
       }
     }
 
     // update and draw player
     player.update()
-    player.draw()
 
     for (let i = enemies.length - 1; i >= 0; i--) {
       const enemy = enemies[i]
       // update and draw enemy
       enemy.update()
-      enemy.draw()
 
       if (enemy.distance < enemy.radius + player.radius) {
         gameOver = true
       }
     }
 
+    ctx.fillText('Level :' + level + ' Score: ' + score, 10, 50)
+
     if (!gameOver) {
+      // win !
+      if (level >= maxLevel && score >= maxLevel * levelScore) {
+        ctx.fillStyle = 'whitz'
+        ctx.textAlign = 'center'
+        ctx.fillText('GG 🌟', canvas.width / 2, canvas.height / 2)
+        return
+      }
       // recursive loop
       requestAnimationFrame(make)
     } else {
+      // loose !
       ctx.fillStyle = 'black'
       ctx.textAlign = 'center'
-      ctx.fillText('You ded bruh 🙏', canvas.width / 2, canvas.height / 2)
+      ctx.fillText('RIP ✝', canvas.width / 2, canvas.height / 2)
+      return
     }
   }
 
